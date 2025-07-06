@@ -243,6 +243,11 @@ export default class S3Storage extends BaseStorage {
       return env.AWS_S3_ACCELERATE_URL;
     }
 
+    // If AWS_S3_UPLOAD_BUCKET_URL is not set, use the default AWS S3 endpoint
+    if (!env.AWS_S3_UPLOAD_BUCKET_URL) {
+      return "https://s3.amazonaws.com";
+    }
+
     // support old path-style S3 uploads and new virtual host uploads by
     // checking for the bucket name in the endpoint url.
     if (env.AWS_S3_UPLOAD_BUCKET_NAME) {
