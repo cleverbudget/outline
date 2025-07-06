@@ -90,6 +90,17 @@ router.post(
     const { auth, transaction } = ctx.state;
     const { user } = auth;
 
+    // Server-side debugging
+    console.log("📤 Step 2: Attachment creation request");
+    console.log("User ID:", user.id);
+    console.log("Request body:", {
+      name,
+      contentType,
+      size,
+      preset,
+      documentId
+    });
+
     // All user types can upload an avatar so no additional authorization is needed.
     if (preset === AttachmentPreset.Avatar) {
       assertIn(contentType, AttachmentValidation.avatarContentTypes);
@@ -122,6 +133,11 @@ router.post(
       userId: user.id,
     });
 
+    console.log("📤 Step 2: Creating attachment record");
+    console.log("Model ID:", modelId);
+    console.log("Key:", key);
+    console.log("ACL:", acl);
+
     const attachment = await Attachment.createWithCtx(ctx, {
       id: modelId,
       key,
@@ -134,6 +150,9 @@ router.post(
       userId: user.id,
     });
 
+    console.log("📤 Step 2: Generating presigned post");
+    console.log("Max upload size:", maxUploadSize);
+
     const presignedPost = await FileStorage.getPresignedPost(
       key,
       acl,
@@ -141,7 +160,11 @@ router.post(
       contentType
     );
 
-    ctx.body = {
+    console.log("📥 Step 2: Presigned post generated");
+    console.log("Upload URL:", FileStorage.getUploadUrl());
+    console.log("Form fields:", Object.keys(presignedPost.fields || {}));
+
+    const responseData = {
       data: {
         uploadUrl: FileStorage.getUploadUrl(),
         form: {
@@ -160,6 +183,12 @@ router.post(
         },
       },
     };
+
+    console.log("📥 Step 2: Sending response");
+    console.log("Response status:", ctx.status);
+    console.log("Attachment ID:", attachment.id);
+
+    ctx.body = responseData;
   }
 );
 

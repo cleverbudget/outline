@@ -39,6 +39,14 @@ export default class S3Storage extends BaseStorage {
     maxUploadSize: number,
     contentType = "image"
   ) {
+    console.log("📤 S3: Generating presigned post");
+    console.log("S3: Key:", key);
+    console.log("S3: ACL:", acl);
+    console.log("S3: Max upload size:", maxUploadSize);
+    console.log("S3: Content type:", contentType);
+    console.log("S3: Bucket:", env.AWS_S3_UPLOAD_BUCKET_NAME);
+    console.log("S3: Endpoint:", this.getEndpoint());
+
     const params: PresignedPostOptions = {
       Bucket: env.AWS_S3_UPLOAD_BUCKET_NAME as string,
       Key: key,
@@ -55,7 +63,17 @@ export default class S3Storage extends BaseStorage {
       Expires: 3600,
     };
 
-    return createPresignedPost(this.client, params);
+    try {
+      const result = await createPresignedPost(this.client, params);
+      console.log("📥 S3: Presigned post generated successfully");
+      console.log("S3: URL:", result.url);
+      console.log("S3: Fields:", Object.keys(result.fields || {}));
+      return result;
+    } catch (error) {
+      console.error("❌ S3: Failed to generate presigned post");
+      console.error("S3: Error:", error);
+      throw error;
+    }
   }
 
   private getPublicEndpoint(isServerUpload?: boolean) {

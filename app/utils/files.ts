@@ -46,7 +46,14 @@ export const uploadFile = async (
     preset: AttachmentPreset.DocumentAttachment,
   }
 ) => {
+  console.log("🔍 Step 1: Starting file upload");
+  console.log("File:", file instanceof File ? file.name : "Blob");
+  console.log("Size:", file.size);
+  console.log("Type:", file.type);
+  
   const name = file instanceof File ? file.name : options.name;
+  console.log("📤 Step 2: Creating attachment via API");
+  
   const response = await client.post("/attachments.create", {
     preset: options.preset,
     documentId: options.documentId,
@@ -54,10 +61,18 @@ export const uploadFile = async (
     size: file.size,
     name,
   });
+  
+  console.log("📥 Step 2: API response received");
+  console.log("Response status:", response?.status);
+  
   invariant(response, "Response should be available");
   const data = response.data;
   const attachment = data.attachment;
   const formData = new FormData();
+
+  console.log("📤 Step 3: Preparing upload to storage");
+  console.log("Upload URL:", data.uploadUrl);
+  console.log("Form fields:", Object.keys(data.form));
 
   for (const key in data.form) {
     formData.append(key, data.form[key]);
@@ -74,28 +89,50 @@ export const uploadFile = async (
   // Using XMLHttpRequest instead of fetch because fetch doesn't support progress
   const xhr = new XMLHttpRequest();
   const success = await new Promise((resolve) => {
+    console.log("🚀 Step 3: Starting upload to storage");
+    
     xhr.upload.addEventListener("progress", (event) => {
       if (event.lengthComputable && options.onProgress) {
+        const percent = Math.round((event.loaded / event.total) * 100);
+        console.log(`📊 Step 3: Upload progress: ${percent}%`);
         options.onProgress(event.loaded / event.total);
       }
     });
+    
     xhr.addEventListener("error", () => {
+      console.error("❌ Step 3: Upload failed");
+      console.error("Status:", xhr.status);
+      console.error("Status Text:", xhr.statusText);
+      console.error("Response:", xhr.responseText);
       Logger.error(
         "File upload failed",
         new Error(`${xhr.status} ${xhr.statusText}`)
       );
     });
-    xhr.addEventListener("loadend", () => {
-      resolve(xhr.readyState === 4 && xhr.status >= 200 && xhr.status < 400);
+    
+    xhr.addEventListener("load", () => {
+      console.log("✅ Step 3: Upload completed successfully");
+      console.log("Status:", xhr.status);
+      console.log("Response Headers:", xhr.getAllResponseHeaders());
     });
+    
+    xhr.addEventListener("loadend", () => {
+      const success = xhr.readyState === 4 && xhr.status >= 200 && xhr.status < 400;
+      console.log(`🎯 Step 3: Upload ${success ? 'succeeded' : 'failed'}`);
+      resolve(success);
+    });
+    
     xhr.open("POST", data.uploadUrl, true);
+    console.log("📤 Step 3: Sending request to:", data.uploadUrl);
     xhr.send(formData);
   });
 
   if (!success) {
+    console.error("💥 Upload failed - throwing error");
     throw new Error("Upload failed");
   }
 
+  console.log("🎉 Upload completed successfully!");
   return attachment;
 };
 
