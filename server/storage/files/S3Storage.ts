@@ -77,34 +77,21 @@ export default class S3Storage extends BaseStorage {
   }
 
   private getPublicEndpoint(isServerUpload?: boolean) {
-    if (env.AWS_S3_ACCELERATE_URL) {
-      return env.AWS_S3_ACCELERATE_URL;
+    // If using AWS S3, always use the standard endpoint
+    if (!env.AWS_S3_UPLOAD_BUCKET_URL || env.AWS_S3_UPLOAD_BUCKET_URL === "/") {
+      return `https://${env.AWS_S3_UPLOAD_BUCKET_NAME}.s3.amazonaws.com`;
     }
-    invariant(
-      env.AWS_S3_UPLOAD_BUCKET_NAME,
-      "AWS_S3_UPLOAD_BUCKET_NAME is required"
-    );
-
     // lose trailing slash if there is one and convert fake-s3 url to localhost
-    // for access outside of docker containers in local development
     const isDocker = env.AWS_S3_UPLOAD_BUCKET_URL.match(/http:\/\/s3:/);
-
     const host = env.AWS_S3_UPLOAD_BUCKET_URL.replace(
       "s3:",
       "localhost:"
     ).replace(/\/$/, "");
-
-    // support old path-style S3 uploads and new virtual host uploads by checking
-    // for the bucket name in the endpoint url before appending.
     const isVirtualHost = host.includes(env.AWS_S3_UPLOAD_BUCKET_NAME);
-
     if (isVirtualHost) {
       return host;
     }
-
-    return `${host}/${isServerUpload && isDocker ? "s3/" : ""}${
-      env.AWS_S3_UPLOAD_BUCKET_NAME
-    }`;
+    return `${host}/${isServerUpload && isDocker ? "s3/" : ""}${env.AWS_S3_UPLOAD_BUCKET_NAME}`;
   }
 
   public getUploadUrl(isServerUpload?: boolean) {
